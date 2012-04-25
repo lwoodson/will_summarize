@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "will_summarize"
-  s.version = "0.0.1"
+  s.version = "0.0.2"
   s.date = "2012-04-22"
   s.summary = "Support for summaries of large text fields in ActiveRecord"
   s.description = "Allows large text fields in ActiveRecord models to be " +
