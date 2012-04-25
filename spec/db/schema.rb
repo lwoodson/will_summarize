@@ -15,4 +15,10 @@ ActiveRecord::Schema.define :version => 0 do
     t.column :name, :string
     t.column :price, :double
   end
+
+  create_table :summary_only_posts, :force => true do |t|
+    t.column :title, :string
+    t.column :content, :text
+    t.column :summary, :string
+  end
 end

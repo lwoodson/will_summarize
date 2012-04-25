@@ -9,4 +9,6 @@ Gem::Specification.new do |s|
   s.email = "lance@webmaneuvers.com"
   s.files = ["lib/will_summarize.rb"]
   s.homepage = "http://github.com/lwoodson/will_summarize"
+  s.add_runtime_dependency "active_record", [">= 3.1.0"]
+  s.add_development_dependency "rspec"
 end

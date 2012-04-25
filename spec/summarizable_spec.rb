@@ -6,6 +6,10 @@ describe "WillSummarize" do
       summarize :content
       validates :summary, :length => {:maximum => 34}
     end
+
+    class SummaryOnlyPost < ActiveRecord::Base
+      summarize :content, :filter => lambda {|column| false}
+    end
   end
 
   describe "test environment" do
@@ -46,15 +50,26 @@ describe "WillSummarize" do
       end.should raise_exception(WillSummarize::SummarizableException)
     end
 
-    it "should add summaries named scope to correctly declared models" do
-      post = Post.new :title => "test title", 
-                      :content => "this is a test",
-                      :summary => "summary"
-      post.save!
-      summary = Post.summaries[0]
-      summary.title.should == "test title"
-      summary.summary.should == "summary"
-      lambda{summary.content}.should raise_exception(ActiveModel::MissingAttributeError)
+    describe "Model.summaries scope" do
+      it "should be added automagically to correctly declared models" do
+        post = Post.new :title => "test title", 
+                        :content => "this is a test",
+                        :summary => "summary"
+        post.save!
+        summary = Post.summaries[0]
+        summary.title.should == "test title"
+        summary.summary.should == "summary"
+        lambda{summary.content}.should raise_exception(ActiveModel::MissingAttributeError)
+      end
+      
+      it "should allow columns to be filtered out with filter option" do
+          post = SummaryOnlyPost.new :title => "test", :content => "this is a test"
+          post.save!
+          summary = SummaryOnlyPost.summaries[0]
+          summary.summary.should == "this is a test"
+          lambda {summary.content}.should raise_exception(ActiveModel::MissingAttributeError)
+          lambda {summary.title}.should raise_exception(ActiveModel::MissingAttributeError)
+      end
     end
 
     describe "Summarizable.populate_summary" do
@@ -110,6 +125,8 @@ describe "WillSummarize" do
         post.save!
         post.summary.should == "a"
       end
+
+      
     end
   end
 end

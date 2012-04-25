@@ -9,26 +9,39 @@ module WillSummarize
       end
     end
 
-    def summarize(attribute)
-      if attribute.nil?
-        raise SummarizableException, "Attribute cannot be nil"
-      end
-      if not columns_hash.has_key? attribute.to_s
-        raise SummarizableException, "Attribute \"#{attribute}\" not found in model"
-      end
+    def summarize(attribute, opts = {})
       column = columns_hash[attribute.to_s]
       summary_column = columns_hash["summary"]
-      if column.type != :string and column.type != :text
-        raise SummarizableException, "Summary target must be of string or text type"
-      end
-      columns = columns_hash.values.select{|column| column.name != attribute.to_s}.map{|column| column.name} 
-      scope :summaries, select(columns)
+      verify_passed_valid attribute, column
+      scope :summaries, select(included_columns(attribute, opts).map{|column| column.name})
+      define_populate_summary_for_html_markup attribute, opts, column, summary_column
+      before_save :populate_summary, :if => "summary.blank?"
+    end
 
+    private
+    def verify_passed_valid(attribute, column)
+      raise(SummarizableException, "Attribute cannot be nil") if attribute.nil?
+      raise(SummarizableException, "Attribute \"#{attribute}\" not found in model") if not columns_hash.has_key? attribute.to_s
+      raise(SummarizableException, "Summary target must be of string or text type") if column.type != :string and column.type != :text
+    end
+
+    def included_columns(attribute, opts)
+      filter = opts[:filter] || lambda {|column| true}
+      columns_hash.values.select do |column| 
+        if column.name == attribute.to_s
+          false
+        elsif column.name == "summary"
+          true
+        else
+          filter.call(column)
+        end
+      end
+    end
+
+    def define_populate_summary_for_html_markup(attribute, opts, column, summary_column)
       define_method(:populate_summary) do
         summary = content = send(attribute.to_sym)
         if content.size > summary_column.limit
-          # TODO this should be refactored to support other first paragraph
-          # matching strategies (plaintext, rdoc, other markups, etc...)
           match_data = /(<p.*?>.*?<\/p>)/m.match(content)
           if match_data
             summary = match_data[1].split().join(" ").sub(/ </, "<").sub(/> /, ">")
@@ -40,8 +53,6 @@ module WillSummarize
         end
         self.summary = summary
       end
-
-      before_save :populate_summary, :if => "summary.blank?"
     end
   end
 end
