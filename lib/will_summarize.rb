@@ -1,5 +1,9 @@
-class WillSummarize
-  def self.test
-    puts "Works!"
-  end
+require "will_summarize/summarizable"
+
+module WillSummarize
 end
+
+class ActiveRecord::Base
+  extend WillSummarize::Summarizable
+end
+

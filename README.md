@@ -28,3 +28,10 @@ end
 ```ruby
 Post.summaries.where('publish_date < ?', Time.now)
 ```
+
+###TODO###
+1. Support multiple first paragraph matching strategies, make it follow a
+precedence order.
+2. Support rails_admin integration; Provide button to populate the summary from
+the content.
+3. Support other configuration options
