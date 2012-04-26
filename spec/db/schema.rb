@@ -21,4 +21,10 @@ ActiveRecord::Schema.define :version => 0 do
     t.column :content, :text
     t.column :summary, :string
   end
+
+  create_table :summarized_on_blank_posts, :force => true do |t|
+    t.column :title, :string
+    t.column :content, :text
+    t.column :summary, :string
+  end
 end

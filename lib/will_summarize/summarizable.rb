@@ -13,9 +13,13 @@ module WillSummarize
       column = columns_hash[attribute.to_s]
       summary_column = columns_hash["summary"]
       verify_passed_valid attribute, column
-      scope :summaries, select(included_columns(attribute, opts).map{|column| column.name})
+      scope :summaries, select(included_columns(attribute, summary_column, opts))
       define_populate_summary_for_html_markup attribute, opts, column, summary_column
-      before_save :populate_summary, :if => "summary.blank?"
+      if opts[:if] == :summary_blank?
+        before_save :populate_summary, :if => "summary.blank?"
+      else
+        before_save :populate_summary
+      end
     end
 
     private
@@ -25,9 +29,9 @@ module WillSummarize
       raise(SummarizableException, "Summary target must be of string or text type") if column.type != :string and column.type != :text
     end
 
-    def included_columns(attribute, opts)
+    def included_columns(attribute, summary_column, opts)
       filter = opts[:filter] || lambda {|column| true}
-      columns_hash.values.select do |column| 
+      result = columns_hash.values.select do |column| 
         if column.name == attribute.to_s
           false
         elsif column.name == "summary"
@@ -35,7 +39,9 @@ module WillSummarize
         else
           filter.call(column)
         end
-      end
+      end.map{|column| column.name}
+      result << "(length(content) = length(summary)) as full_content_in_summary"
+      result
     end
 
     def define_populate_summary_for_html_markup(attribute, opts, column, summary_column)

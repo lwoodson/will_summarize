@@ -10,6 +10,10 @@ describe "WillSummarize" do
     class SummaryOnlyPost < ActiveRecord::Base
       summarize :content, :filter => lambda {|column| false}
     end
+
+    class SummarizedOnBlankPost < ActiveRecord::Base
+      summarize :content, :if => :summary_blank?
+    end
   end
 
   describe "test environment" do
@@ -51,24 +55,43 @@ describe "WillSummarize" do
     end
 
     describe "Model.summaries scope" do
+      before :each do
+        Post.delete_all
+      end
+
       it "should be added automagically to correctly declared models" do
         post = Post.new :title => "test title", 
-                        :content => "this is a test",
-                        :summary => "summary"
+                        :content => "this is a test"
         post.save!
-        summary = Post.summaries[0]
+        summary = Post.summaries[-1]
         summary.title.should == "test title"
-        summary.summary.should == "summary"
+        summary.summary.should == "this is a test"
         lambda{summary.content}.should raise_exception(ActiveModel::MissingAttributeError)
       end
       
       it "should allow columns to be filtered out with filter option" do
           post = SummaryOnlyPost.new :title => "test", :content => "this is a test"
           post.save!
-          summary = SummaryOnlyPost.summaries[0]
+          summary = SummaryOnlyPost.summaries[-1]
           summary.summary.should == "this is a test"
           lambda {summary.content}.should raise_exception(ActiveModel::MissingAttributeError)
           lambda {summary.title}.should raise_exception(ActiveModel::MissingAttributeError)
+      end
+
+      it "should populate elements with full_content_in_summary attribute (true case)" do
+        post = Post.new :title => "title",
+                        :content => "this is a test"
+        post.save!
+        summary = Post.summaries[-1]
+        summary.full_content_in_summary?.should == true
+      end
+  
+      it "should populate elements with full_content_in_summary attribute (false case)" do
+        post = Post.new :title => "title",
+                        :content => '<p class="blah">This is a really big test.  Not really.</p>'
+        post.save!
+        summary = Post.summaries[-1]
+        summary.full_content_in_summary?.should == false
       end
     end
 
@@ -114,19 +137,26 @@ describe "WillSummarize" do
         post.summary.should == "this is a test"
       end
 
-      it "should be invoked for records with blank summaries on save" do
+      it "should be invoked for records on save" do
         post = Post.new :title => "test", :content => "this is a test", :summary => ""
+        post.save!
+        post.summary.should == "this is a test"
+        post.content = "This is a test, too"
+        post.save!
+        post.summary.should == "This is a test, too"
+      end
+
+      it "should be invoked for blank summaries if options contains :if => :summary_blank?" do
+        post = SummarizedOnBlankPost.new :title => 'test', :content => 'this is a test'
         post.save!
         post.summary.should == "this is a test"
       end
 
-      it "should not be invoked for records with populated summaries on save" do
-        post = Post.new :title => "test", :content => "this is a test", :summary => "a"
+      it "should not be invoked for records with populated summaries if options contains :if => :summary_blank?" do
+        post = SummarizedOnBlankPost.new :title => "test", :content => "this is a test", :summary => "a"
         post.save!
         post.summary.should == "a"
       end
-
-      
     end
   end
 end
